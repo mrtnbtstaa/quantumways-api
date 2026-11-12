@@ -6,6 +6,7 @@ from django.contrib.auth.hashers import check_password
 from django.contrib.auth import login, authenticate
 from datetime import datetime
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import make_aware, is_naive
 from rest_framework.exceptions import PermissionDenied
 from quantumways.create_activity_log import create_activity_log
@@ -77,7 +78,20 @@ class CustomLoginObtainPairSerializer(TokenObtainPairSerializer):
         user_role = getattr(getattr(user, 'user_role', None), 'role', None)
 
         if user_role not in allowed_roles:
-            raise PermissionDenied({"message": "You do not have permission to access this page"})
+            raise PermissionDenied({"message": "You do not have permission to access this resource"})
+
+        profile = None
+
+        try:
+            user_profile = user.user_profile
+        except ObjectDoesNotExist:
+            user_profile = None
+
+        if user_profile:
+            picture = getattr(user_profile, "picture", None)
+            if picture:
+                profile = picture.url
+                print(f"PROFILE: {profile}")
 
         login(request, user)
 
@@ -94,11 +108,7 @@ class CustomLoginObtainPairSerializer(TokenObtainPairSerializer):
             "first_name": user.first_name,
             "last_name": user.last_name,
             "role": user_role,
-            "profile_image": (
-                getattr(getattr(user, 'user_profile'), 'picture', None).url
-                if getattr(getattr(user, 'user_profile'), 'picture', None)
-                else None
-            )
+            "profile_image": profile
         }
     
     @classmethod

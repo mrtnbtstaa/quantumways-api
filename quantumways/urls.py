@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from quantumways.database_export_view import DatabaseExportDownloadView
 
 def ping(request):
     return JsonResponse({"status": "ok"})
@@ -10,6 +11,7 @@ def ping(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('ping/', ping, name='ping'),
+    path('api/database/export/download', DatabaseExportDownloadView.as_view(), name='database_export_download'),
     path('api/', include('authentication_app.urls')),
     path('api/', include('purchase_request_app.urls')),
     path('api/', include('purchase_order_app.urls')),

@@ -20,7 +20,7 @@ from .serializers import (
 class ServiceRepairViews(BaseFeatureViewSet):
 
     model = ServiceRepair
-
+    
     serializer_action_classes = {
         "create": CreateServiceRepairSerializer,
         "list": ListServiceRepairSerializer,
@@ -176,7 +176,7 @@ class ServiceRepairExportView(generics.ListAPIView):
             # snapshots = []
             # Iterate over the original equipments
 
-            for i, service in enumerate(services):
+            for _, service in enumerate(services):
 
                 equipment_log = getattr(service, 'equipment_log', None)
 

@@ -27,7 +27,7 @@ class TokenBucketThrottle(BaseThrottle):
             return 60, 7
 
         # Authenticated users
-        return 30, 20
+        return 30, 5
     
     def get_cache_key(self, request):
 

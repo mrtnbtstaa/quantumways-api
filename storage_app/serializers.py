@@ -8,6 +8,7 @@ import mimetypes
 import cloudinary.uploader
 import re
 import uuid
+from django.core.exceptions import ObjectDoesNotExist
 
 User = get_user_model()
 
@@ -26,8 +27,27 @@ ALLOWED_MIME_TYPES = [
     "application/vnd.ms-excel",
 ]
 
+def get_uploaded_by(user):
+    if not user:
+        return None
 
+    profile_image = None
 
+    try:
+        user_profile = user.user_profile
+        picture = getattr(user_profile, "picture", None)
+
+        if picture:
+            profile_image = picture.url
+
+    except ObjectDoesNotExist:
+        pass
+
+    return {
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "profile_image": profile_image,
+    }
 
 class CreateFolderSerializers(serializers.ModelSerializer):
 
@@ -100,11 +120,7 @@ class ListFolderSerializer(serializers.ModelSerializer):
         except User.DoesNotExist:
             raise_validation("No user found")
 
-        data["uploaded_by"] = {
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "profile_image": getattr(getattr(user, 'user_profile', None), 'picture', None).url
-        }
+        data["uploaded_by"] = get_uploaded_by(user)
 
         return data
     
@@ -138,96 +154,64 @@ class ListFileDetailSerializer(serializers.ModelSerializer):
 
 class ListFolderDetailSerializer(serializers.ModelSerializer):
 
-    folder_id = serializers.UUIDField(source='id')
+    folder_id = serializers.UUIDField(source="id")
     files = ListFileDetailSerializer(many=True)
     sub_folder = serializers.SerializerMethodField()
 
+    class Meta:
+        model = Folder
+        fields = [
+            "folder_id",
+            "folder_name",
+            "sub_folder",
+            "files",
+            "owner",
+        ]
+
+
+    @staticmethod
+    def get_previous_folders(folder):
+        previous_folders = []
+        current = folder
+
+        while current:
+            previous_folders.append({
+                "folder_name": current.folder_name,
+                "folder_id": current.id,
+            })
+
+            current = current.parent
+
+        return list(reversed(previous_folders))
 
     def get_sub_folder(self, obj):
-        sub_folder = obj.subfolders.all()
-        data = ListFolderDetailSerializer(sub_folder, many=True).data
+        sub_folders = obj.subfolders.all()
 
-        owner = getattr(obj, 'owner', None)
+        data = ListFolderDetailSerializer(
+            sub_folders,
+            many=True,
+            context=self.context,
+        ).data
 
-        try:
-            user = User.objects.get(id=owner.id)
-        except User.DoesNotExist:
-            raise_validation("No user found")
-
-        uploaded_by_data = {
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "profile_image": getattr(getattr(user, 'user_profile', None), 'picture', None).url
-        }
+        uploaded_by = get_uploaded_by(obj.owner)
 
         for item in data:
-            item["uploaded_by"] = uploaded_by_data
-            item.pop('previous', None)
-            item.pop('files', None)
-            item.pop('sub_folder', None)
+            item["uploaded_by"] = uploaded_by
+            item.pop("previous", None)
+            item.pop("files", None)
+            item.pop("sub_folder", None)
 
         return data
 
     def to_representation(self, instance):
-
         data = super().to_representation(instance)
 
-        folder = instance
+        uploaded_by = get_uploaded_by(instance.owner)
 
-        previous_folders = []
-        current = folder
-
-        while current is not None:
-
-            parent = current.parent
-
-            folder_id = None
-
-            if current is not None:
-                folder_id = current.id
-            elif parent is not None:
-                folder_id = parent.id
-
-            previous_folders.append({
-                "folder_name": current.folder_name,
-                "folder_id": folder_id
-            })
-
-            # Only include if not the current folder itself
-            # if (current.folder_name != folder.folder_name):
-            current = parent # Move to the next node
-
-        previous_folders.reverse()
-
-        data["previous"] = previous_folders
-
-        owner = data.pop('owner')
-
-        try:
-            user = User.objects.get(id=owner)
-        except User.DoesNotExist:
-            raise_validation("No user found")
-
-        uploaded_by_data = {
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "profile_image": getattr(getattr(user, 'user_profile', None), 'picture', None).url
-        }
-
-        files = data.pop('files')
-
-        for file in files:
-            file["uploaded_by"] = uploaded_by_data
-
-
-        data["files"] = files
-        data["sub_folder"] = data.pop('sub_folder')
+        data["uploaded_by"] = uploaded_by
+        data["previous"] = self.get_previous_folders(instance)
 
         return data
-
-    class Meta:
-        model = Folder
-        fields = ['folder_id', 'folder_name', 'sub_folder', 'files', 'owner']
 
 
 
@@ -320,8 +304,6 @@ class FileUploadSerializer(serializers.Serializer):
                 public_id = f"{safe_name}{ext}" if file_format else safe_name
                 # public_id = f"{folder_path.replace(os.sep, '_')}_{safe_name}{ext}" if folder_path else f"{safe_name}{ext}"
 
-                print(f"PUBLIC ID: {public_id}")
-
                 cloudinary_folder = f"files/{folder_path.replace(os.sep, '/')}" if folder_path else "files"
                 # Upload to cloudinary
                 upload_result = cloudinary.uploader.upload(
@@ -383,11 +365,7 @@ class ListFileDetailSerializer(serializers.ModelSerializer):
 
         user_owner = User.objects.get(id=instance.owner.id)
 
-        data["uploaded_by"] = {
-            "first_name": user_owner.first_name,
-            "last_name": user_owner.last_name,
-            "profile_image": getattr(getattr(user_owner, 'user_profile', None), 'picture', None).url
-        }
+        data["uploaded_by"] = get_uploaded_by(user_owner)
 
         return data
 

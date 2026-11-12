@@ -21,7 +21,7 @@ class BaseFeatureView(
    
     feature_name = None # Name of the feature for permission checking (used with custom permissions)
 
-    permission_classes = [IsAuthenticated, HasFeatureAccess] # List of permission classes that control access to this view
+    permission_classes = [IsAuthenticated] # List of permission classes that control access to this view
 
     pagination_class = CustomPageNumberPagination
 

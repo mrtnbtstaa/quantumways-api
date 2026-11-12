@@ -14,8 +14,6 @@ ENVIRONMENT = os.environ.get('DJANGO_ENV', 'staging')
 # Load the correct .env file
 ENV_PATH = BASE_DIR / f".env.{ENVIRONMENT}"
 
-print(f"ENVIRONMENT RUNNING ON: {ENV_PATH}")
-
 load_dotenv(dotenv_path=ENV_PATH)
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
@@ -35,7 +33,7 @@ cloudinary.config(
 )
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY', "django-insecure-)#%+=!ee65wwfz(v1@dszja=c_591awb_ahye(5d-&20usg=r4")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = os.environ.get("DEBUG", "").lower() == "true",
@@ -54,7 +52,7 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ORIGIN_ALLOW_ALL = True
 
 # Application definition
 
@@ -87,11 +85,6 @@ INSTALLED_APPS = [
     'storage_app',
     'service_repair_app'
 ]
-
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:8000",  # or the frontend URL
-#     "http://127.0.0.1:5500",  # or the frontend URL
-# ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -131,6 +124,18 @@ WSGI_APPLICATION = 'quantumways.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+# Source - https://stackoverflow.com/a/41946144
+# Posted by George Griffin
+# Retrieved 2026-11-04, License - CC BY-SA 3.0
+
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 
 DATABASES = {
     'default': dj_database_url.config(

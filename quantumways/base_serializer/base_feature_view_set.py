@@ -9,7 +9,7 @@ from quantumways.base_serializer.bulk_delete_mixins import BulkDeleteMixin
 from quantumways.base_serializer.custom_messages_response import CustomMessagesResponse
 from quantumways.pagination.main_pagination import CustomPageNumberPagination
 from django.db.models import Q
-
+from quantumways.throttling.token_bucket_throttle import TokenBucketThrottle
 class BaseFeatureViewSet(
     SerializerActionByMixin,
     CustomMessagesResponse,
@@ -58,6 +58,21 @@ class BaseFeatureViewSet(
         "partial_update": None
     }
 
+    def get_throttles(self):
+        if self.request.method == "POST":
+            return [TokenBucketThrottle()]
+        
+        if self.request.method == "DELETE":
+            return [TokenBucketThrottle()]
+        
+        if self.request.method == "PUT":
+            return [TokenBucketThrottle()]
+        
+        if self.request.method == "PATCH":
+            return [TokenBucketThrottle()]
+        
+        return super().get_throttles()
+
     def base_get_queryset(self):
         """
             Base queryset hook. Subclasses can override this
@@ -91,39 +106,39 @@ class BaseFeatureViewSet(
         return qs.order_by('created_at')
     
     
-    # def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         
-    #     instance = self.get_object()
-    #     serializer = self.get_serializer(instance)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
 
-    #     return response_message_utils(
-    #         message=self.success_detail_message,
-    #         data=serializer.data,
-    #         status_code=status.HTTP_200_OK
-    #     )
+        return response_message_utils(
+            message=self.success_detail_message,
+            data=serializer.data,
+            status_code=status.HTTP_200_OK
+        )
     
-    # def list(self, request, *args, **kwargs):
+    def list(self, request, *args, **kwargs):
 
-    #     queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset())
 
-    #     # Handle pagination
-    #     page = self.paginate_queryset(queryset)
-    #     if page is not None:
-    #         serializer = self.get_serializer(page, many=True)
-    #         paginated_data = self.get_paginated_response(serializer.data).data
-    #         return response_message_utils(
-    #             message=self.success_list_message,
-    #             data=paginated_data,
-    #             status_code=status.HTTP_200_OK
-    #         )
+        # Handle pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            paginated_data = self.get_paginated_response(serializer.data).data
+            return response_message_utils(
+                message=self.success_list_message,
+                data=paginated_data,
+                status_code=status.HTTP_200_OK
+            )
 
-    #     # If no pagination
-    #     serializer = self.get_serializer(queryset, many=True)
-    #     return response_message_utils(
-    #         message=self.success_list_message,
-    #         data=serializer.data,
-    #         status_code=status.HTTP_200_OK
-    #     )
+        # If no pagination
+        serializer = self.get_serializer(queryset, many=True)
+        return response_message_utils(
+            message=self.success_list_message,
+            data=serializer.data,
+            status_code=status.HTTP_200_OK
+        )
     
     def create(self, request, *args, **kwargs):
 

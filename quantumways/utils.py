@@ -64,7 +64,6 @@ def extract_first_error_message(errors) -> str:
                 sub = extract_first_error_message(v)
                 if sub:
                     return sub
-            # If value is a dict, recurse
             elif isinstance(v, dict):
                 message = extract_first_error_message(v)
                 if message:

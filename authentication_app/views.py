@@ -31,7 +31,6 @@ from .serializers import (
 
 class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
-    throttle_classes = [TokenBucketThrottle]
 
     def post(self, request, *args, **kwargs):
 
@@ -60,7 +59,6 @@ class CustomTokenRefreshView(TokenRefreshView):
 class CustomLoginObtainPairView(TokenObtainPairView):
     
     serializer_class = CustomLoginObtainPairSerializer
-    throttle_classes = [TokenBucketThrottle]
 
     def post(self, request, *args, **kwargs):
 
